@@ -27,7 +27,7 @@ import org.w3c.dom.Text;
 import me.thanel.swipeactionview.SwipeActionView;
 import me.thanel.swipeactionview.SwipeGestureListener;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements addTask.addTaskDialogListener {
 
     ExpandableLayout expandableLayout;
 
@@ -112,7 +112,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onAddTask(View view){
-        Toast.makeText(this,"Task Added",Toast.LENGTH_SHORT).show();
+        addTask dialog = new addTask();
+        dialog.show(getSupportFragmentManager(),"MahanDialog");
     }
 
+    @Override
+    public void addTask(int taskColor, String name, int progress) {
+        int backgroundColor = manipulateColor(taskColor,0.4f);
+        RoundCornerProgressBar progressBar = expandableLayout.parentLayout.findViewById(R.id.Iconprogress);
+        progressBar.setProgressColor(taskColor);
+        progressBar.setBackgroundColor(backgroundColor);
+        progressBar.setMax(progress);
+        progressBar.setProgress(Math.min(5,progress));
+
+        TextView taskName = expandableLayout.parentLayout.findViewById(R.id.TaskTitle);
+        taskName.setText(name);
+
+        TextView taskProg = expandableLayout.parentLayout.findViewById(R.id.TaskProgress);
+        taskProg.setText("5/"+ progress);
+
+
+    }
+
+    private int manipulateColor(int color, float factor) {
+        int a = Color.alpha(color);
+        int r = Math.round(Color.red(color) * factor);
+        int g = Math.round(Color.green(color) * factor);
+        int b = Math.round(Color.blue(color) * factor);
+        return Color.argb(a,
+                Math.min(r,255),
+                Math.min(g,255),
+                Math.min(b,255));
+    }
 }
