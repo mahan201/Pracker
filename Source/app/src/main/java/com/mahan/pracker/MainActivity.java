@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
     LayoutInflater layoutInflater;
 
     ArrayList<String[]> taskList;
+    ExpandableLayout currentlyOpen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,23 +68,23 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         });
 
         mAdView = findViewById(R.id.adView);
-        mAdView.setAdListener(new AdListener(){
+        mAdView.setAdListener(new AdListener() {
             @Override
             public void onAdClicked() {
                 super.onAdClicked();
-                Toast.makeText(context,"You have fed a man with this action.", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "You have fed a man with this action.", Toast.LENGTH_LONG).show();
             }
         });
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
 
-        sharedPreferences = getSharedPreferences("com.mahan.pracker",MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences("com.mahan.pracker", MODE_PRIVATE);
         layoutInflater = getLayoutInflater();
 
         mainLinear = findViewById(R.id.mainLinearLayout);
 
         try {
-            String taskListSerialized = sharedPreferences.getString("taskList",ObjectSerializer.serialize(new ArrayList<String[]>()));
+            String taskListSerialized = sharedPreferences.getString("taskList", ObjectSerializer.serialize(new ArrayList<String[]>()));
             taskList = (ArrayList<String[]>) ObjectSerializer.deserialize(taskListSerialized);
         } catch (IOException e) {
             e.printStackTrace();
@@ -93,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
     }
 
-    private void loadTasks(){
+    private void loadTasks() {
         for (int i = 0; i < taskList.size(); i++) {
             String[] task = taskList.get(i);
             int color = Integer.parseInt(task[0]);
@@ -101,23 +102,23 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             int progress = Integer.parseInt(task[2]);
             int max = Integer.parseInt(task[3]);
 
-            addTask(color,name,progress,max, false);
+            addTask(color, name, progress, max, false);
         }
     }
 
 
-    private void updateTask(int pos){
+    private void updateTask(int pos) {
         ExpandableLayout expandableLayout = mainLinear.getChildAt(pos).findViewById(R.id.expandable);
 
         String[] task = taskList.remove(pos);
 
         EditText textDelta = expandableLayout.secondLayout.findViewById(R.id.progressDelta);
         int prog = Integer.parseInt(task[2]) + Integer.parseInt(textDelta.getText().toString());
-        prog = Math.min(prog,Integer.parseInt(task[3]));
+        prog = Math.min(prog, Integer.parseInt(task[3]));
 
         textDelta.setText("");
         expandableLayout.collapse();
-        InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(textDelta.getWindowToken(), 0);
 
         taskList.add(pos, new String[]{task[0], task[1], String.valueOf(prog), task[3]});
@@ -130,52 +131,56 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
         TextView secondTarget = expandableLayout.secondLayout.findViewById(R.id.target);
         secondTarget.setText("Target: " + task[3]);
-
-        storeTasks();
     }
 
-    private void deleteTask(int pos){
+    private void deleteTask(int pos) {
         taskList.remove(pos);
         mainLinear.removeViewAt(pos);
-        storeTasks();
     }
 
-    public void onAddTask(View view){
+    public void onAddTask(View view) {
         addTask dialog = new addTask();
-        dialog.show(getSupportFragmentManager(),"MahanDialog");
+        dialog.show(getSupportFragmentManager(), "MahanDialog");
     }
 
     @Override
     public void addTask(int taskColor, String name, int progress, int max, boolean isNew) {
-        int backgroundColor = manipulateColor(taskColor,0.4f);
+        int backgroundColor = manipulateColor(taskColor, 0.4f);
 
-        final LinearLayout taskView = (LinearLayout) layoutInflater.inflate(R.layout.task_view,null);
+        final LinearLayout taskView = (LinearLayout) layoutInflater.inflate(R.layout.task_view, null);
 
         final ExpandableLayout expandableLayout = taskView.findViewById(R.id.expandable);
         RoundCornerProgressBar progressBar = expandableLayout.parentLayout.findViewById(R.id.taskProgressBar);
 
         progressBar.setProgress(progress);
         progressBar.setMax(max);
-        progressBar.setBackgroundColor(backgroundColor);
+        progressBar.setProgressBackgroundColor(backgroundColor);
         progressBar.setProgressColor(taskColor);
+
 
         expandableLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(expandableLayout.isExpanded()){
+                if (expandableLayout.isExpanded()) {
                     expandableLayout.collapse();
-                }
-                else {
+                } else {
+                    if (currentlyOpen != null)
+                    {
+                        currentlyOpen.collapse();
+                    }
                     expandableLayout.expand();
+                    currentlyOpen = expandableLayout;
                 }
             }
         });
+
+        expandableLayout.secondLayout.setBackgroundColor(backgroundColor);
 
         TextView taskName = expandableLayout.parentLayout.findViewById(R.id.TaskTitle);
         taskName.setText(name);
 
         TextView taskprogress1 = expandableLayout.parentLayout.findViewById(R.id.TaskProgress);
-        taskprogress1.setText(progress+"/"+max);
+        taskprogress1.setText(progress + "/" + max);
 
         TextView target = expandableLayout.secondLayout.findViewById(R.id.target);
         target.setText("Target: " + max);
@@ -187,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             @Override
             public void onClick(View v) {
                 for (int i = 0; i < mainLinear.getChildCount(); i++) {
-                    if(mainLinear.getChildAt(i) == taskView){
+                    if (mainLinear.getChildAt(i) == taskView) {
                         deleteTask(i);
                     }
                 }
@@ -200,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             @Override
             public void onClick(View v) {
                 for (int i = 0; i < mainLinear.getChildCount(); i++) {
-                    if(mainLinear.getChildAt(i) == taskView){
+                    if (mainLinear.getChildAt(i) == taskView) {
                         updateTask(i);
                     }
                 }
@@ -208,11 +213,11 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         });
 
         mainLinear.addView(taskView);
-        
-        if(isNew) {
-            String[] currentTask = {String.valueOf(taskColor),name, String.valueOf(progress), String.valueOf(max)};
+
+        if (isNew) {
+            String[] currentTask = {String.valueOf(taskColor), name, String.valueOf(progress), String.valueOf(max)};
             taskList.add(currentTask);
-            storeTasks();
+
         }
 
     }
@@ -223,20 +228,26 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         int g = Math.round(Color.green(color) * factor);
         int b = Math.round(Color.blue(color) * factor);
         return Color.argb(a,
-                Math.min(r,255),
-                Math.min(g,255),
-                Math.min(b,255));
+                Math.min(r, 255),
+                Math.min(g, 255),
+                Math.min(b, 255));
     }
 
-    private void storeTasks(){
+    private void storeTasks() {
 
         try {
             String taskListSerialized = ObjectSerializer.serialize(taskList);
 
-            sharedPreferences.edit().putString("taskList",taskListSerialized).apply();
+            sharedPreferences.edit().putString("taskList", taskListSerialized).apply();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        storeTasks();
     }
 }
