@@ -68,7 +68,7 @@ public class addTask extends AppCompatDialogFragment {
 
 
 
-                listener.addTask(taskColor,taskName,taskProgress);
+                listener.addTask(taskColor,taskName, 0, taskProgress, true);
                 dismiss();
             }
         });
@@ -96,7 +96,7 @@ public class addTask extends AppCompatDialogFragment {
     }
 
     public interface addTaskDialogListener{
-        void addTask(int taskColor, String name, int progress);
+        void addTask(int taskColor, String name, int progress, int max, boolean isNew);
     }
 
 }

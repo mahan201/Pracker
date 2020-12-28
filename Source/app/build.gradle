@@ -46,4 +46,7 @@ dependencies {
     //Color Picker
     implementation 'com.github.QuadFlask:colorpicker:0.0.15'
 
+    //Ads
+    implementation 'com.google.android.gms:play-services-ads:19.6.0'
+
 }
