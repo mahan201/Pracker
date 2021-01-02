@@ -55,6 +55,7 @@ public class addTask extends AppCompatDialogFragment implements CompoundButton.O
         isRepeating = view.findViewById(R.id.isRepeating);
 
         final ArrayList<String> taskNames = getArguments().getStringArrayList("TaskNames");
+        final int lastID = getArguments().getInt("LastID");
 
         if(taskNames.size() > 0){
             independentTaskSpinner = view.findViewById(R.id.independentSpinner);
@@ -96,13 +97,13 @@ public class addTask extends AppCompatDialogFragment implements CompoundButton.O
 
                 int dependency = -1;
                 if(isDependent.isChecked()){
-                    dependency = taskNames.size() - independentTaskSpinner.getSelectedItemPosition() - 1;
+                    dependency = independentTaskSpinner.getSelectedItemPosition();
                 }
 
 
                 System.out.println(dependency);
-                Task task = new Task(taskColor,taskName,taskProgress,0,dependency,isRepeating.isChecked());
-                listener.addTask(task);
+
+                listener.addNewTask(lastID+1, taskColor,taskName,taskProgress,dependency,isRepeating.isChecked());
                 dismiss();
             }
         });
@@ -145,7 +146,7 @@ public class addTask extends AppCompatDialogFragment implements CompoundButton.O
     }
 
     public interface addTaskDialogListener{
-        void addTask(Task task);
+        void addNewTask(int id, int taskColor, String taskName, int taskProgress, int dependencyPos, boolean isRepeating);
     }
 
 }

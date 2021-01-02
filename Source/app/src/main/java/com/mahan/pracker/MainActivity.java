@@ -118,10 +118,8 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
 
 
-    private void updateTaskIndependent(final int pos1, int n){
-        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos1).findViewById(R.id.expandable);
-
-        int pos = taskList.size() - pos1 - 1;
+    private void updateTaskIndependent(final int pos, int n){
+        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos).findViewById(R.id.expandable);
 
         final Task task = taskList.get(pos);
         task.increase(n);
@@ -139,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
         if(task.isComplete()){
             for (int i = 0; i < taskList.size(); i++) {
-                if(taskList.get(i).dependent == pos){
+                if(taskList.get(i).dependent == task.id){
                     updateTaskIndependent(i,1);
                 }
             }
@@ -149,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        updateTaskIndependent(pos1,val);
+                        updateTaskIndependent(pos,val);
                     }
                 },1000);
             }
@@ -158,9 +156,8 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
     }
 
 
-    private void updateTask(final int pos1) {
-        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos1).findViewById(R.id.expandable);
-        int pos = taskList.size() - pos1 - 1;
+    private void updateTask(final int pos) {
+        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos).findViewById(R.id.expandable);
         Task task = taskList.get(pos);
         System.out.println(task.dependent);
 
@@ -186,10 +183,8 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
         if(task.isComplete()){
             for (int i = 0; i < taskList.size(); i++) {
-                if(taskList.get(i).dependent == pos){
-                    int n = taskList.size() - i - 1;
-                    System.out.println(n);
-                    updateTaskIndependent(n,1);
+                if(taskList.get(i).dependent == task.id){
+                    updateTaskIndependent(i,1);
                 }
             }
 
@@ -199,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        updateTask(pos1);
+                        updateTask(pos);
                     }
                 },1000);
             }
@@ -208,22 +203,46 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
     }
 
     private void deleteTask(int pos) {
+        int id = taskList.get(pos).id;
         taskNames.remove(pos);
         mainLinear.removeViewAt(pos);
-        pos = taskList.size() - pos - 1;
         taskList.remove(pos);
+        for (int i = 0; i < taskList.size(); i++) {
+            if(taskList.get(i).dependent == id){
+                deleteTask(i);
+            }
+        }
+
     }
 
     public void onAddTask(View view) {
         addTask dialog = new addTask();
         Bundle args = new Bundle();
         args.putStringArrayList("TaskNames",taskNames);
+        if(taskList.size() == 0){
+            args.putInt("LastID",0);
+        }
+        else{
+            args.putInt("LastID",taskList.get(0).id);
+        }
+
         dialog.setArguments(args);
         dialog.show(getSupportFragmentManager(), "MahanDialog");
     }
 
     @Override
-    public void addTask(Task task) {
+    public void addNewTask(int id, int taskColor, String taskName, int taskProgress, int dependencyPos, boolean isRepeating){
+        int dependency = -1;
+        if(dependencyPos != -1){
+            dependency = taskList.get(dependencyPos).id;
+        }
+
+        Task task = new Task(id,taskColor,taskName,taskProgress,0,dependency,isRepeating);
+        addTask(task);
+    }
+
+    public void addTask(final Task task) {
+
         int backgroundColor = manipulateColor(task.color, 0.4f);
 
         final LinearLayout taskView = (LinearLayout) layoutInflater.inflate(R.layout.task_view, null);
@@ -240,6 +259,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         expandableLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Toast.makeText(context,String.valueOf(task.id),Toast.LENGTH_SHORT).show();
                 if (expandableLayout.isExpanded()) {
                     expandableLayout.collapse();
                 } else {
@@ -299,13 +319,19 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             applyBtn.setVisibility(View.GONE);
             expandableLayout.secondLayout.findViewById(R.id.addView).setVisibility(View.GONE);
             TextView dependentDescription = expandableLayout.secondLayout.findViewById(R.id.dependentDescription);
-            dependentDescription.setText("Dependent on: " + taskNames.get(taskNames.size() - task.dependent - 1));
+            String name = "";
+            for (Task cTask:
+                 taskList) {
+                if(cTask.id == task.dependent){
+                    name = cTask.name;
+                }
+            }
+            dependentDescription.setText("Dependent on: " + name);
             dependentDescription.setVisibility(View.VISIBLE);
         }
 
         mainLinear.addView(taskView,0);
-
-        taskList.add(task);
+        taskList.add(0, task);
         taskNames.add(0,task.name);
 
         storeTasks();
@@ -329,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             ArrayList<String[]> taskStrings = new ArrayList<>();
             for (Task task:
                  taskList) {
-                taskStrings.add(task.toArray());
+                taskStrings.add(0, task.toArray());
             }
             String taskListSerialized = ObjectSerializer.serialize(taskStrings);
 

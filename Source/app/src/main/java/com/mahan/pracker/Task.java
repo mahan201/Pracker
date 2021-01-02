@@ -6,7 +6,8 @@ public class Task {
     int progress, target, color, dependent;
     boolean isRepeating;
 
-    public Task(int mColor, String mName, int mTarget, int mProgress, int mDependent, boolean mRepeats){
+    public Task(int mID, int mColor, String mName, int mTarget, int mProgress, int mDependent, boolean mRepeats){
+        this.id = mID;
         this.name = mName;
         this.color = mColor;
         this.target = mTarget;
@@ -18,13 +19,14 @@ public class Task {
 
 
     public Task(String[] arr){
-        if(arr.length < 5){return;}
-        this.color = Integer.parseInt(arr[0]);
-        this.name = arr[1];
-        this.progress = Integer.parseInt(arr[2]);
-        this.target = Integer.parseInt(arr[3]);
-        this.dependent = Integer.parseInt(arr[4]);
-        this.isRepeating = Boolean.parseBoolean(arr[5]);
+        if(arr.length < 7){return;}
+        this.id = Integer.parseInt(arr[0]);
+        this.color = Integer.parseInt(arr[1]);
+        this.name = arr[2];
+        this.progress = Integer.parseInt(arr[3]);
+        this.target = Integer.parseInt(arr[4]);
+        this.dependent = Integer.parseInt(arr[5]);
+        this.isRepeating = Boolean.parseBoolean(arr[6]);
     }
 
     public boolean increase(){
@@ -44,7 +46,7 @@ public class Task {
     }
 
     public String[] toArray(){
-        return new String[]{String.valueOf(color), name, String.valueOf(progress), String.valueOf(target), String.valueOf(dependent), String.valueOf(isRepeating)};
+        return new String[]{String.valueOf(id), String.valueOf(color), name, String.valueOf(progress), String.valueOf(target), String.valueOf(dependent), String.valueOf(isRepeating)};
     }
 
 
