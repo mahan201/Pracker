@@ -3,29 +3,38 @@ package com.mahan.pracker;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Spinner;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialogFragment;
 
 import com.flask.colorpicker.ColorPickerView;
-import com.mahan.pracker.R;
 
-public class addTask extends AppCompatDialogFragment {
+import java.util.ArrayList;
 
+public class addTask extends AppCompatDialogFragment implements CompoundButton.OnCheckedChangeListener {
+
+    private View view;
     private EditText taskNameEdit;
     private Button okButton;
     private Button cancelButton;
     private addTaskDialogListener listener;
     private ColorPickerView colorPickerView;
     private EditText taskProgressEdit;
+    private CheckBox isDependent;
+    private CheckBox isRepeating;
+
+    private Spinner independentTaskSpinner;
 
     @NonNull
     @Override
@@ -33,7 +42,7 @@ public class addTask extends AppCompatDialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.activity_add_task,null);
+        view = inflater.inflate(R.layout.activity_add_task,null);
 
         builder.setView(view);
 
@@ -42,6 +51,25 @@ public class addTask extends AppCompatDialogFragment {
         cancelButton = view.findViewById(R.id.cancel_btn);
         colorPickerView = view.findViewById(R.id.colorWheel);
         taskProgressEdit = view.findViewById(R.id.taskProgressEdit);
+        isDependent = view.findViewById(R.id.isDependent);
+        isRepeating = view.findViewById(R.id.isRepeating);
+
+        final ArrayList<String> taskNames = getArguments().getStringArrayList("TaskNames");
+
+        if(taskNames.size() > 0){
+            independentTaskSpinner = view.findViewById(R.id.independentSpinner);
+            ArrayAdapter adapter = new ArrayAdapter<String>(getContext(),R.layout.colored_spinner_layout,taskNames);
+            adapter.setDropDownViewResource(R.layout.colored_spinner_layout_dropdown);
+            independentTaskSpinner.setAdapter(adapter);
+        }
+        else{
+            isDependent.setVisibility(View.GONE);
+        }
+
+
+
+        isDependent.setOnCheckedChangeListener(this);
+
 
         okButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -66,9 +94,15 @@ public class addTask extends AppCompatDialogFragment {
                     return;
                 }
 
+                int dependency = -1;
+                if(isDependent.isChecked()){
+                    dependency = taskNames.size() - independentTaskSpinner.getSelectedItemPosition() - 1;
+                }
 
 
-                listener.addTask(taskColor,taskName, 0, taskProgress, true);
+                System.out.println(dependency);
+                Task task = new Task(taskColor,taskName,taskProgress,0,dependency,isRepeating.isChecked());
+                listener.addTask(task);
                 dismiss();
             }
         });
@@ -95,8 +129,23 @@ public class addTask extends AppCompatDialogFragment {
         }
     }
 
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        switch (buttonView.getId()){
+            case R.id.isDependent:
+                if(isChecked){
+                    view.findViewById(R.id.dependentView).setVisibility(View.VISIBLE);
+                }
+                else {
+                    view.findViewById(R.id.dependentView).setVisibility(View.GONE);
+                }
+                break;
+
+        }
+    }
+
     public interface addTaskDialogListener{
-        void addTask(int taskColor, String name, int progress, int max, boolean isNew);
+        void addTask(Task task);
     }
 
 }

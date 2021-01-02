@@ -11,6 +11,8 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -39,6 +41,7 @@ import org.w3c.dom.Text;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
 
 import me.thanel.swipeactionview.SwipeActionView;
 import me.thanel.swipeactionview.SwipeGestureListener;
@@ -53,8 +56,11 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
     SharedPreferences sharedPreferences;
     LayoutInflater layoutInflater;
 
-    ArrayList<String[]> taskList;
+    ArrayList<Task> taskList;
+    ArrayList<String> taskNames;
     ExpandableLayout currentlyOpen;
+
+    Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
             public void onInitializationComplete(InitializationStatus initializationStatus) {
             }
         });
+
+        handler = new Handler(Looper.getMainLooper());
 
         mAdView = findViewById(R.id.adView);
         mAdView.setAdListener(new AdListener() {
@@ -83,79 +91,150 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
 
         mainLinear = findViewById(R.id.mainLinearLayout);
 
-        try {
-            String taskListSerialized = sharedPreferences.getString("taskList", ObjectSerializer.serialize(new ArrayList<String[]>()));
-            taskList = (ArrayList<String[]>) ObjectSerializer.deserialize(taskListSerialized);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        taskList = new ArrayList<>();
+        taskNames = new ArrayList<>();
 
         loadTasks();
 
     }
 
     private void loadTasks() {
-        for (int i = 0; i < taskList.size(); i++) {
-            String[] task = taskList.get(i);
-            int color = Integer.parseInt(task[0]);
-            String name = task[1];
-            int progress = Integer.parseInt(task[2]);
-            int max = Integer.parseInt(task[3]);
+        try {
 
-            addTask(color, name, progress, max, false);
+            String taskListSerialized = sharedPreferences.getString("taskList", ObjectSerializer.serialize(new ArrayList<String[]>()));
+            ArrayList<String[]> taskStrings = (ArrayList<String[]>) ObjectSerializer.deserialize(taskListSerialized);
+            for (int i = 0; i < taskStrings.size(); i++) {
+                String[] task = taskStrings.get(i);
+                System.out.println(task.toString());
+                Task taskObj = new Task(task);
+                addTask(taskObj);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+
+    private void updateTaskIndependent(final int pos1, int n){
+        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos1).findViewById(R.id.expandable);
+
+        int pos = taskList.size() - pos1 - 1;
+
+        final Task task = taskList.get(pos);
+        task.increase(n);
+
+        expandableLayout.collapse();
+
+        RoundCornerProgressBar progressBar = expandableLayout.parentLayout.findViewById(R.id.taskProgressBar);
+        progressBar.setProgress(task.progress);
+
+        TextView parentProg = expandableLayout.parentLayout.findViewById(R.id.TaskProgress);
+        parentProg.setText(task.progress + "/" + task.target);
+
+        TextView secondTarget = expandableLayout.secondLayout.findViewById(R.id.target);
+        secondTarget.setText("Target: " + task.target);
+
+        if(task.isComplete()){
+            for (int i = 0; i < taskList.size(); i++) {
+                if(taskList.get(i).dependent == pos){
+                    updateTaskIndependent(i,1);
+                }
+            }
+
+            if(task.isRepeating){
+                final int val = -1 * task.target;
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateTaskIndependent(pos1,val);
+                    }
+                },1000);
+            }
+
         }
     }
 
 
-    private void updateTask(int pos) {
-        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos).findViewById(R.id.expandable);
-
-        String[] task = taskList.remove(pos);
+    private void updateTask(final int pos1) {
+        ExpandableLayout expandableLayout = mainLinear.getChildAt(pos1).findViewById(R.id.expandable);
+        int pos = taskList.size() - pos1 - 1;
+        Task task = taskList.get(pos);
+        System.out.println(task.dependent);
 
         EditText textDelta = expandableLayout.secondLayout.findViewById(R.id.progressDelta);
-        int prog = Integer.parseInt(task[2]) + Integer.parseInt(textDelta.getText().toString());
-        prog = Math.min(prog, Integer.parseInt(task[3]));
+        if(textDelta.getText().toString().equals("")){
+            textDelta.setHintTextColor(Color.RED);
+            return;
+        }
+        else {textDelta.setHintTextColor(Color.WHITE);}
+        task.increase(Integer.parseInt(textDelta.getText().toString()));
 
-        textDelta.setText("");
         expandableLayout.collapse();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(textDelta.getWindowToken(), 0);
-
-        taskList.add(pos, new String[]{task[0], task[1], String.valueOf(prog), task[3]});
+        textDelta.setText("");
 
         RoundCornerProgressBar progressBar = expandableLayout.parentLayout.findViewById(R.id.taskProgressBar);
-        progressBar.setProgress(prog);
+        progressBar.setProgress(task.progress);
 
         TextView parentProg = expandableLayout.parentLayout.findViewById(R.id.TaskProgress);
-        parentProg.setText(prog + "/" + task[3]);
+        parentProg.setText(task.progress + "/" + task.target);
 
         TextView secondTarget = expandableLayout.secondLayout.findViewById(R.id.target);
-        secondTarget.setText("Target: " + task[3]);
+        secondTarget.setText("Target: " + task.target);
+
+        if(task.isComplete()){
+            for (int i = 0; i < taskList.size(); i++) {
+                if(taskList.get(i).dependent == pos){
+                    int n = taskList.size() - i - 1;
+                    System.out.println(n);
+                    updateTaskIndependent(n,1);
+                }
+            }
+
+            if(task.isRepeating){
+                textDelta.setText("-" + task.target);
+
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        updateTask(pos1);
+                    }
+                },1000);
+            }
+
+        }
     }
 
     private void deleteTask(int pos) {
-        taskList.remove(pos);
+        taskNames.remove(pos);
         mainLinear.removeViewAt(pos);
+        pos = taskList.size() - pos - 1;
+        taskList.remove(pos);
     }
 
     public void onAddTask(View view) {
         addTask dialog = new addTask();
+        Bundle args = new Bundle();
+        args.putStringArrayList("TaskNames",taskNames);
+        dialog.setArguments(args);
         dialog.show(getSupportFragmentManager(), "MahanDialog");
     }
 
     @Override
-    public void addTask(int taskColor, String name, int progress, int max, boolean isNew) {
-        int backgroundColor = manipulateColor(taskColor, 0.4f);
+    public void addTask(Task task) {
+        int backgroundColor = manipulateColor(task.color, 0.4f);
 
         final LinearLayout taskView = (LinearLayout) layoutInflater.inflate(R.layout.task_view, null);
 
         final ExpandableLayout expandableLayout = taskView.findViewById(R.id.expandable);
         RoundCornerProgressBar progressBar = expandableLayout.parentLayout.findViewById(R.id.taskProgressBar);
 
-        progressBar.setProgress(progress);
-        progressBar.setMax(max);
+        progressBar.setProgress(task.progress);
+        progressBar.setMax(task.target);
         progressBar.setProgressBackgroundColor(backgroundColor);
-        progressBar.setProgressColor(taskColor);
+        progressBar.setProgressColor(task.color);
 
 
         expandableLayout.setOnClickListener(new View.OnClickListener() {
@@ -177,13 +256,17 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         expandableLayout.secondLayout.setBackgroundColor(backgroundColor);
 
         TextView taskName = expandableLayout.parentLayout.findViewById(R.id.TaskTitle);
-        taskName.setText(name);
+        taskName.setText(task.name);
 
         TextView taskprogress1 = expandableLayout.parentLayout.findViewById(R.id.TaskProgress);
-        taskprogress1.setText(progress + "/" + max);
+        taskprogress1.setText(task.progress + "/" + task.target);
 
         TextView target = expandableLayout.secondLayout.findViewById(R.id.target);
-        target.setText("Target: " + max);
+        target.setText("Target: " + task.target);
+
+        if(task.isRepeating){
+            expandableLayout.secondLayout.findViewById(R.id.repeatImage).setVisibility(View.VISIBLE);
+        }
 
         final int position = mainLinear.getChildCount();
 
@@ -201,24 +284,31 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
         });
 
         Button applyBtn = expandableLayout.secondLayout.findViewById(R.id.okButton);
-        applyBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                for (int i = 0; i < mainLinear.getChildCount(); i++) {
-                    if (mainLinear.getChildAt(i) == taskView) {
-                        updateTask(i);
+        if(task.dependent == -1) {
+            applyBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int i = 0; i < mainLinear.getChildCount(); i++) {
+                        if (mainLinear.getChildAt(i) == taskView) {
+                            updateTask(i);
+                        }
                     }
                 }
-            }
-        });
-
-        mainLinear.addView(taskView);
-
-        if (isNew) {
-            String[] currentTask = {String.valueOf(taskColor), name, String.valueOf(progress), String.valueOf(max)};
-            taskList.add(currentTask);
-
+            });
+        }else {
+            applyBtn.setVisibility(View.GONE);
+            expandableLayout.secondLayout.findViewById(R.id.addView).setVisibility(View.GONE);
+            TextView dependentDescription = expandableLayout.secondLayout.findViewById(R.id.dependentDescription);
+            dependentDescription.setText("Dependent on: " + taskNames.get(taskNames.size() - task.dependent - 1));
+            dependentDescription.setVisibility(View.VISIBLE);
         }
+
+        mainLinear.addView(taskView,0);
+
+        taskList.add(task);
+        taskNames.add(0,task.name);
+
+        storeTasks();
 
     }
 
@@ -236,7 +326,12 @@ public class MainActivity extends AppCompatActivity implements addTask.addTaskDi
     private void storeTasks() {
 
         try {
-            String taskListSerialized = ObjectSerializer.serialize(taskList);
+            ArrayList<String[]> taskStrings = new ArrayList<>();
+            for (Task task:
+                 taskList) {
+                taskStrings.add(task.toArray());
+            }
+            String taskListSerialized = ObjectSerializer.serialize(taskStrings);
 
             sharedPreferences.edit().putString("taskList", taskListSerialized).apply();
         } catch (IOException e) {

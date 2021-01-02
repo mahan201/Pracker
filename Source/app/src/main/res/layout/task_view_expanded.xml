@@ -5,8 +5,7 @@
     android:layout_height="wrap_content"
     android:background="@color/colorPrimary"
     android:orientation="horizontal"
-    android:paddingBottom="10dp"
-    >
+    android:paddingBottom="10dp">
 
 
     <LinearLayout
@@ -24,6 +23,7 @@
             android:textSize="18sp" />
 
         <LinearLayout
+            android:id="@+id/addView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
@@ -42,9 +42,21 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ems="10"
+                android:hint="0"
                 android:inputType="numberSigned"
-                android:textColor="#FFFFFF" />
+                android:textColor="#FFFFFF"
+                android:textColorHint="#FFFFFF" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/dependentDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:text="Dependent on: TASKNAME"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:visibility="gone" />
 
 
     </LinearLayout>
@@ -52,33 +64,47 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity=""
         android:gravity="end"
-        android:orientation="horizontal">
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/deleteButton"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/deleteButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/rounded_button_delete"
+                android:text="DELETE"
+                android:textColor="#FFFFFF"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
+            <Button
+                android:id="@+id/okButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/rounded_button_update"
+                android:text="Update"
+                android:textColor="#FFFFFF"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/repeatImage"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:layout_margin="10dp"
-            android:background="@drawable/rounded_button_delete"
-            android:text="DELETE"
-            android:textColor="#FFFFFF"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-
-        <Button
-            android:id="@+id/okButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:background="@drawable/rounded_button_update"
-            android:text="Update"
-            android:textColor="#FFFFFF"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
+            android:src="@drawable/ic_repeat"
+            android:visibility="gone" />
 
     </LinearLayout>
 
